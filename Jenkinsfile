@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Docker Hub credentials
-        DOCKER_HUB_CREDENTIALS = 'dockerhub-repo'
+        DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
         DOCKER_IMAGE = 'chrisgospel12/portfolio:latest'
         REPO_URL = 'https://github.com/kris575/Obeya_profile-Dev.git'
         EC2_INSTANCE_IP = '34.221.161.245' // Your EC2 instance public IP

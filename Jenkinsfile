@@ -4,10 +4,10 @@ pipeline {
     environment {
         // DockerHub credentials
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
-        DOCKER_IMAGE = 'chrisgospel12/portfolio'
+        DOCKER_IMAGE = 'chrisgospel12/portfolio:latest'
         EC2_IP = '34.221.161.245' // Your EC2 instance public IP
         SSH_CREDENTIALS_ID = 'ec2-ssh-keypair' // Jenkins credential ID for the EC2 SSH keypair
-        EC2_USER = 'ubuntu' // Your EC2 user (adjust if necessary)
+        EC2_USER = 'ubuntu' // Change to 'ec2-user' if using Amazon Linux
     }
 
     stages {
@@ -46,10 +46,10 @@ pipeline {
                     // SSH into EC2 instance and run deployment commands
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} << EOF
-                            docker pull ${DOCKER_IMAGE}
-                            docker stop yourapp || true
-                            docker rm yourapp || true
-                            docker run -d --chrisgospel12/portfolio -p 80:80 ${DOCKER_IMAGE}
+                            sudo docker pull ${DOCKER_IMAGE}
+                            sudo docker stop yourapp || true
+                            sudo docker rm yourapp || true
+                            sudo docker run -d --name yourapp -p 80:80 ${DOCKER_IMAGE}
                             exit
                         EOF
                     """

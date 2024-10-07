@@ -1,70 +1,44 @@
 pipeline {
     agent any
-
     environment {
-        // Docker Hub credentials
-        DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
-        DOCKER_IMAGE = 'chrisgospel12/portfolio:latest'
+        DOCKER_HUB_CREDENTIALS = 'dockerhub-repo'
+        IMAGE_NAME = 'chrisgospel12/portfolio'
         REPO_URL = 'https://github.com/kris575/Obeya_profile-Dev.git'
-        EC2_INSTANCE_IP = '34.221.161.245' // Your EC2 instance public IP
-        SSH_CREDENTIALS_ID = 'ec2-ssh-keypair' // Jenkins credential ID for the EC2 SSH keypair
-        EC2_USER = 'ubuntu' // Change to 'ec2-user' if using Amazon Linux
+        EC2_INSTANCE_IP = '34.221.161.245' // Updated IP address
     }
-
     stages {
         stage('Git Checkout') {
             steps {
-                // Pull the code from GitHub
-                git branch: 'main', url: REPO_URL
+                // Clone the specified repository
+                git url: REPO_URL, branch: 'main'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
                     // Build the Docker image
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    sh 'docker build -t ${IMAGE_NAME} -f Dockerfile .'
                 }
             }
         }
-
         stage('Push Docker Image to Docker Hub') {
             steps {
-                script {
-                    // Login to Docker Hub and push the image
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                        sh "docker push ${DOCKER_IMAGE}"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-repo', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+                    sh 'docker push ${IMAGE_NAME}'
                 }
             }
         }
-
-        stage('Deploy to EC2') {
+        stage('Deploy with Docker Compose to EC2') {
             steps {
-                // Use SSH Agent plugin to use credentials securely
-                sshagent([SSH_CREDENTIALS_ID]) {
-                    // SSH into EC2 instance and run deployment commands
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_INSTANCE_IP} << EOF
-                            sudo docker pull ${DOCKER_IMAGE}
-                            sudo docker stop yourapp || true
-                            sudo docker rm yourapp || true
-                            sudo docker run -d --name yourapp -p 80:80 ${DOCKER_IMAGE}
-                            exit
-                        EOF
-                    """
+                sshagent(credentials: ['EC2-SSH-Key']) {
+                    // Copy the compose file to the EC2 instance
+                    sh 'scp -o StrictHostKeyChecking=no compose.yml ubuntu@${EC2_INSTANCE_IP}:/home/ubuntu/compose.yml'
+                    
+                    // Deploy using docker-compose with sudo
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@${EC2_INSTANCE_IP} "sudo docker-compose -f /home/ubuntu/compose.yml up -d"'
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Deployment completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed. Check the logs for details.'
         }
     }
 }

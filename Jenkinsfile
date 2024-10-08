@@ -4,7 +4,7 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = 'dockerhub-repo'
         IMAGE_NAME = 'chrisgospel12/portfolio'
         REPO_URL = 'https://github.com/kris575/Obeya_profile-Dev.git'
-        EC2_INSTANCE_IP = '54.191.237.122' // Updated IP address
+        EC2_INSTANCE_IP = '52.12.197.76' // Updated IP address
     }
     stages {
         stage('Git Checkout') {
